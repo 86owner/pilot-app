@@ -1657,8 +1657,11 @@ function twCarryList(wk){const dm=twDoneMap_(twQ().filter(o=>o.type==='done'));r
 function twStatsFor(cfg,wk){const n=nowObj();return twStats_(cfg,twComps(wk),twCarryList(wk),wk,n,wk<logMonday_(n.date))}
 const twTxt=(t,es)=>esc(es?(t.es||t.en):t.en);
 function twQpush(o){if(o.type==='invset'||(o.type==='op'&&o.o.k!=='once'))o.pin=TK.pin||'';const q=twQ();q.push(o);twQset(q)}
+/* R1 (owner rule 2026-11-09): an urgent (overdue) task and the same task due again today show once (the urgent copy). Checking it off also checks off the other open copy; unchecking undoes the copies done today together. */
+function twDedupe(L,isT){if(!isT)return L;const best={};L.forEach(x=>{if(x.st!=='overdue'&&x.st!=='pending')return;const k=x.emp+'|'+x.tid,b=best[k];if(!b||x.due<b.due||(x.due===b.due&&x.orig<b.orig))best[k]=x});return L.filter(x=>(x.st!=='overdue'&&x.st!=='pending')||best[x.emp+'|'+x.tid]===x)}
+function twTogether(cfg,tk,tid,orig,on){try{const today=ymd(new Date()),st=twStatsFor(cfg,twCur()),me=st.items.find(x=>x.tid===tid&&x.orig===orig);if(!me)return;st.items.filter(x=>x.tid===tid&&x.orig!==orig&&x.emp===me.emp&&x.due<=today&&(on?(x.st==='overdue'||x.st==='pending'):(x.st==='done'&&x.cd===today))).forEach(x=>twQpush({type:'done',id:wid('c'),tid:tid,orig:x.orig,op:on?'done':'undo',by:twEmpAt_(cfg,tk,x.orig),cts:lts()}))}catch(e){}}
 function twToggle(tid,orig){const cfg=twCfg(),tk=twFind_(cfg,tid);if(!tk)return;const dm=twDoneMap_(twComps(logMonday_(orig))),on=!dm[tid+'|'+orig];
-twQpush({type:'done',id:wid('c'),tid:tid,orig:orig,op:on?'done':'undo',by:twEmpAt_(cfg,tk,orig),cts:lts()});if(on)cheer(TK.emp||twEmpAt_(cfg,tk,orig)||'');if((tk.l||[]).length)twPrepFromTask(tk,on);twFlush();twRender()}
+twQpush({type:'done',id:wid('c'),tid:tid,orig:orig,op:on?'done':'undo',by:twEmpAt_(cfg,tk,orig),cts:lts()});twTogether(cfg,tk,tid,orig,on);if(on)cheer(TK.emp||twEmpAt_(cfg,tk,orig)||'');if((tk.l||[]).length)twPrepFromTask(tk,on);twFlush();twRender()}
 function twFlush(){if(twBusy||!BACKEND)return;const q=twQ();if(!q.length)return;twBusy=1;const o=q[0];
 const body=o.type==='done'?{action:'twDone',id:o.id,tid:o.tid,orig:o.orig,op:o.op,by:o.by,cts:o.cts}:o.type==='op'?{action:'twOp',id:o.id,o:o.o,pin:o.pin||''}:o.type==='inv'?{action:'twInv',id:o.id,name:o.name,cat:o.cat,qty:o.qty,note:o.note,cts:o.cts}:{action:'twInvSet',id:o.id,pid:o.pid,status:o.status,pin:o.pin||''};
 fetch(BACKEND,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(Object.assign({key:BKEY},body))}).then(r=>r.json()).then(j=>{twBusy=0;
@@ -1700,7 +1703,10 @@ const pq=twQ().length;const nm=TK.net==='old'?t('The Google script is not update
 h+=`<div class="syn${TK.net==='old'?' tlbad':''}" role="status">${pq?`${t('Saving...')} ${pq} ${t('items waiting to sync.')}`+(TK.net?' '+nm:''):nm}</div>`;
 h+=`<div class="seg segt" role="group">${[['open','Employees',''],['rep','Report','']].map(v=>`<button data-wv="${v[0]}"${v[0]==='trn'&&tnPop()?' class="tnpop"':''} aria-pressed="${TK.view===v[0]}">${v[2]?`<span class="lg">${t(v[1])}</span><span class="sh">${t(v[2])}</span>`:t(v[1])}</button>`).join('')}</div>`;
 if(TK.view==='open'&&!TK.emp)h+=tnOverHtml()+twOpen(cfg,st);else if(TK.view==='open')h+=twEmp(cfg,st,TK.emp);else if(TK.view==='assigned')h+=twAssigned(cfg,st);else if(TK.view==='review')h+=twReview(cfg);else if(TK.view==='hist')h+=twHistV(cfg,st);else h+=twRep(cfg,st);
-h+=mrTasksHtml();$('main').innerHTML=h;pcdPaint();mrBind();tnBind();pfCdPaint()}
+h+=mrTasksHtml();$('main').innerHTML=h;epSplit();pcdPaint();mrBind();tnBind();pfCdPaint()}
+/* EP1: inside an employee's profile, the same pieces are placed in two columns (dashboard left, task list right). Nothing is created or removed; only moved. The dashboard keeps its own scroll position when the screen is redrawn. */
+const EPS={n:'',y:0};document.addEventListener('scroll',e=>{const x=e.target;if(x&&x.classList&&x.classList.contains('epl'))EPS.y=x.scrollTop},true);
+function epSplit(){if(TK.view!=='open'||!TK.emp)return;const mn=$('main');if(!mn)return;const G=document.createElement('div'),L=document.createElement('div'),R=document.createElement('div');G.className='epg';L.className='epl';R.className='epr';Array.from(mn.children).forEach(c=>(c.classList.contains('pcdw')?R:L).appendChild(c));G.appendChild(L);G.appendChild(R);mn.appendChild(G);if(EPS.n!==TK.emp){EPS.n=TK.emp;EPS.y=0}if(EPS.y)L.scrollTop=EPS.y}
 /* AD: this person's items from Today's task list live inside the profile's task list: open ones on top (above the carried-over ones), finished ones under Completed */
 function twPrepRows(n){try{const st=pst(),all=PITEMS.concat(st.c),seen={},mine=all.filter(i=>st.n[i.id]&&(((st.e||{})[i.id])||(twOwner(i.n)?'':pWhoOf(i.n)||''))===n&&!seen[i.id]&&(seen[i.id]=1)),pp=st.p||{};
 mine.sort((a,b)=>((pp[a.id]?0:st.u[a.id]?1:2)-(pp[b.id]?0:st.u[b.id]?1:2))||((+pp[b.id]||0)-(+pp[a.id]||0)));
@@ -1735,7 +1741,7 @@ const rank=x=>x.st==='overdue'?0:x.st==='pending'?1:x.st==='future'?2:x.st==='ex
 let list=[];if(date===today)list=mine.filter(x=>x.st==='overdue'||(!x.carry&&x.due===date)||(x.st==='done'&&x.due<today&&x.cd===today));else list=mine.filter(x=>!x.carry&&x.due===date);
 list.sort(srt);
 /* Order in a profile: urgent carried-over -> assigned tasks (this person + Anyone) -> today's tasks -> Completed (always at the bottom, still visible) */
-const isT=date===today,dnL=list.filter(x=>x.st==='done'),opL=list.filter(x=>x.st!=='done'),td=ymd(new Date()),mrM=isT?mrFor(n):[],mrO=mrM.filter(i=>!i.done),mrD=mrM.filter(i=>i.done);
+const isT=date===today,dnL=list.filter(x=>x.st==='done'),opL=twDedupe(list.filter(x=>x.st!=='done'),isT),td=ymd(new Date()),mrM=isT?mrFor(n):[],mrO=mrM.filter(i=>!i.done),mrD=mrM.filter(i=>i.done);
 const co=isT?opL.filter(x=>x.due<today):[],asg=opL.filter(x=>!co.includes(x)&&tk[x.tid]&&tk[x.tid].src==='assigned'),rest=opL.filter(x=>!co.includes(x)&&!asg.includes(x));
 const W=(k,x)=>x?`<div class="pcdw" data-k="${k}">${x}</div>`:'';let hh=h;h='';const PR=isT?twPrepRows(n):{open:'',done:'',nOpen:0,nDone:0};
 if(PR.nOpen)h+=`<h3 class="gh twprh">&#128203; ${t("From today's task list")} (${PR.nOpen})</h3>`+PR.open;
@@ -3617,5 +3623,102 @@ Object.assign(ES,{'Today':'Hoy','This week':'Esta semana','This month':'Este mes
 'Pick a start date and an end date.':'Elija la fecha de inicio y la fecha final.','The start date is after the end date.':'La fecha de inicio es después de la fecha final.','FRESH PRODUCE':'FRUTAS Y VERDURAS','FRUITS':'FRUTAS','MEATS':'CARNES','CARRY OUT':'PARA LLEVAR','PPE':'EQUIPO DE PROTECCIÓN'});
 
 </script>
+<style id="epcss">
+/* EP1 2026-11-09: Employee profile visual redesign (Premium Charcoal). Style + two-column layout only. Applies only inside .epg (an employee's profile). */
+:root{--ep-bg:#0D0D0D;--ep-panel:#1A1A1A;--ep-ch:#2C2C2C;--ep-lg:#E6E6E6;--ep-card:#F8F8F8;--ep-red:#D90000;--ep-green:#22B24C;--ep-yel:#FFC107;--ep-od:#FFE5E5;--ep-done:#E8F6E8;--ep-up:#FFF8E1;--ep-nav:128px;--ep-pad:12px;--ep-gap:12px}
+main:has(>.epg){background:var(--ep-bg)!important;padding:var(--ep-pad) var(--ep-pad) 60px!important}
+.epg{display:grid;grid-template-columns:calc(33.333vw - var(--ep-nav) - var(--ep-pad) - var(--ep-gap) / 2) minmax(0,1fr);gap:var(--ep-gap);align-items:start}
+@media (max-width:899px){.epg{display:block}.epl{position:static!important;max-height:none!important;margin-bottom:var(--ep-gap)}}
+.epl,.epr{min-width:0}
+/* ---------- LEFT: employee dashboard ---------- */
+.epl{position:sticky;top:0;max-height:calc(100vh - 2 * var(--ep-pad));overflow-y:auto;overscroll-behavior:contain;background:var(--ep-panel);color:#fff;border:1px solid var(--ep-ch);border-radius:16px;padding:12px;box-sizing:border-box;font-size:15px}
+.epl>h2{color:#fff!important;font-size:22px!important;margin:0 0 8px!important;padding:0 0 6px!important;border-bottom:3px solid var(--ep-red)!important;background:none!important;letter-spacing:.5px}
+.epl .tlh{font-size:14px;color:var(--ep-lg);gap:2px 10px;margin:0}.epl .tlh b{font-size:16px;color:#fff}
+.epl .syn{color:var(--ep-green)!important;font-size:13px!important;margin:2px 0 8px!important}.epl .syn.tlbad{color:var(--ep-yel)!important}
+.epl .segt{margin:0 0 10px!important;gap:8px}
+.epl .segt button{min-height:44px!important;background:var(--ep-ch)!important;color:#fff!important;border:2px solid var(--ep-ch)!important;border-radius:10px!important;font-size:15px!important;font-weight:800;box-shadow:none!important}
+.epl .segt button[aria-pressed=true]{background:var(--ep-red)!important;border-color:var(--ep-red)!important}
+.epl .pfov,.epl .bkrow,.epl .pfg>.pfc,.epl .pfg>.tnc,.epl .mrbox{background:transparent!important;border:1px solid var(--ep-ch)!important;border-radius:12px!important;color:#fff!important;margin:0 0 10px!important;padding:8px 10px!important;box-shadow:none!important}
+.epl .pfov .twhd{flex-wrap:wrap!important;white-space:normal!important;overflow:visible!important;gap:6px!important}
+.epl .pfov .twhd h3{color:#fff;font-size:20px;white-space:nowrap}
+.epl .twrl{background:transparent;color:#fff;border-color:var(--ep-lg);font-size:12px;border-radius:999px;padding:0 8px}
+.epl .pflg{border:2px solid var(--ep-ch);background:var(--ep-ch)}
+.epl .pflg button{background:var(--ep-ch);color:#fff;font-size:12px!important;min-width:0!important;min-height:30px!important;padding:2px 10px!important}
+.epl .pflg button[aria-pressed=true]{background:var(--ep-red);color:#fff}
+.epl .pfov .twhd .twp{font-size:20px!important;padding:2px 10px!important;border-radius:10px;color:#111;margin-left:auto}
+.epl .pfst{color:var(--ep-lg)!important;font-size:12px!important;line-height:1.5}.epl .pfst b{color:#fff}
+/* timers: one row of four, charcoal with red outline */
+.epl .bkb{flex-wrap:nowrap!important;gap:6px!important}
+.epl .bkm{background:var(--ep-ch)!important;color:#fff!important;border:2px solid var(--ep-red)!important;border-radius:10px!important;min-height:52px!important;padding:6px 2px!important;font-size:12px!important}
+.epl .bkm b{font-size:12px!important;white-space:nowrap}
+.epl .bkm.on{background:var(--ep-green)!important;border-color:var(--ep-green)!important}
+.epl .bkm.on.bkx{background:var(--ep-red)!important;border-color:var(--ep-red)!important}
+.epl .bko{background:var(--ep-ch)!important;border:2px solid var(--ep-red)!important;border-radius:10px!important;padding:4px 2px!important}
+.epl .bko b{font-size:11px!important;color:#fff!important;white-space:nowrap}.epl .bkv{font-size:18px;color:#fff}
+/* week calendar */
+.epl .tld{gap:4px!important;margin:0 0 10px!important}
+.epl .tld button{background:var(--ep-ch)!important;color:#fff!important;border:2px solid #555!important;border-radius:8px!important;min-height:56px!important;font-size:11px!important;padding:3px 0!important;outline:0!important}
+.epl .tld button span{font-size:17px!important}.epl .tld small{font-size:10px!important;font-weight:700;color:var(--ep-lg)}
+.epl .tld .s-pass{border-color:var(--ep-green)!important}.epl .tld .s-fail{border-color:var(--ep-red)!important}
+.epl .tld .s-pending,.epl .tld .s-missing{border-color:var(--ep-yel)!important}.epl .tld .s-future{border-color:#555!important}
+.epl .tld button[aria-pressed=true]{background:var(--ep-red)!important;box-shadow:0 0 0 2px #fff}
+.epl .tld button[aria-pressed=true] small{color:#fff}
+/* headings inside the dashboard */
+.epl .gh{background:transparent!important;color:#fff!important;border:0!important;border-left:5px solid var(--ep-red)!important;border-radius:0!important;font-size:17px!important;padding:2px 10px!important;margin:4px 0 8px!important}
+.epl .pft{color:#fff!important;font-size:14px!important}
+.epl .note{color:var(--ep-lg)!important;font-size:13px}
+/* voice messages + training */
+.epl .pfg{margin:0!important}
+.epl .vmrec{background:var(--ep-red)!important;color:#fff!important;border:2px solid var(--ep-red)!important;border-radius:10px!important;min-height:44px!important;font-size:14px!important}
+.epl .btn.alt,.epl .tnm{background:var(--ep-ch)!important;color:#fff!important;border:2px solid #555!important;border-radius:10px!important}
+.epl .vmd{color:#fff}
+.epl .tnc{color:#fff}.epl .tnc .tns,.epl .tnx,.epl .tnpt,.epl .trpur,.epl .trfda{color:var(--ep-lg)!important}
+.epl .tnc .btn:not(.alt){background:var(--ep-red);color:#fff;border-color:var(--ep-red)}
+.epl .sw input:checked+span{background:var(--ep-green)!important;border-color:var(--ep-green)!important}
+/* assign task (stays at the bottom of the dashboard) */
+.epl .mrbox .gh{margin-top:0!important}
+.epl #mrt{background:var(--ep-lg)!important;color:#111!important;border:2px solid var(--ep-ch)!important;border-radius:10px!important;font-size:15px!important;min-height:44px;width:100%;box-sizing:border-box}
+.epl .mrc1,.epl .mrc2{gap:6px!important}.epl .mrc1{flex:1 1 100%!important}
+.epl .mrph,.epl .mrvm{min-height:44px!important;min-width:48px!important;font-size:18px!important;padding:2px 10px!important}
+.epl .mrlock{background:var(--ep-ch)!important;color:#fff!important;border:2px solid #555!important;border-radius:10px!important;font-size:14px!important;min-height:44px!important;padding:4px 10px!important}
+.epl .purg{color:#fff!important;font-size:13px!important}
+.epl #mrsend{background:var(--ep-red)!important;border-color:var(--ep-red)!important;color:#fff!important;min-height:44px!important;border-radius:10px!important;font-size:15px!important}
+/* ---------- RIGHT: task list ---------- */
+.epr .pcdw{background:var(--ep-card)!important;border:2px solid var(--ep-lg)!important;border-radius:16px!important;padding:10px 12px!important;margin:0 0 12px!important;opacity:1}
+.epr .pcdw[data-k=urgent]{background:var(--ep-od)!important;border-color:#F3B3B3!important}
+.epr .pcdw[data-k=done]{background:var(--ep-done)!important;border-color:#B8E0B8!important}
+.epr .pcdw[data-k=day]:has(.twr.st-future){background:var(--ep-up)!important;border-color:#F5DA8A!important}
+.epr .gh{background:transparent!important;color:#111!important;border:0!important;border-left:6px solid var(--ep-ch)!important;border-radius:0!important;font-size:20px!important;padding:2px 10px!important;margin:2px 0 8px!important}
+.epr .twcoh{color:var(--ep-red)!important;border-left-color:var(--ep-red)!important}.epr .twcoh small{color:var(--ep-red);font-size:13px}
+.epr .twash{border-left-color:var(--ep-yel)!important}
+.epr .twdnh{color:#1B7F3B!important;border-left-color:var(--ep-green)!important}
+.epr .twr{background:#fff;border:1px solid var(--ep-lg);border-radius:12px;padding:10px 12px;margin:6px 0;gap:12px;align-items:center;box-shadow:0 1px 2px rgba(0,0,0,.05)}
+.epr .twr .twt{font-size:20px}
+.epr .twr.st-overdue,.epr .twr.urg{background:#fff;border-color:#F3B3B3}
+.epr .twr.st-future{background:#fff;border-color:#F5DA8A}
+.epr .twr.dn{background:#fff;border-color:#B8E0B8}
+.epr .twc{font-size:13px;padding:1px 8px}
+.epr .twu{font-size:15px;color:var(--ep-red)}
+.epr .twco{font-size:14px;background:var(--ep-red)}
+/* checkboxes: green outline, green fill with a white check when done; big enough for a finger */
+.epr .twck{width:52px;height:52px;border:4px solid var(--ep-green);border-radius:12px;background:#fff;color:#fff;font-size:34px}
+.epr .twck.on{background:var(--ep-green);border-color:var(--ep-green);color:#fff}
+.epr .twck:disabled{background:#fff;border-color:var(--ep-green)}
+.epr .twdns{opacity:1}
+.epr .twdns .twr,.epr .twdns .row{background:#fff}
+.epr .note{color:#333}
+/* EP1 polish: training header, switch size, voice messages wrap, timer labels centred */
+.epl .tnh{background:transparent!important;border:0!important;padding:0!important}
+.epl .tnh .pft{color:#fff!important}
+.epl .tnokb{color:var(--ep-green)}
+.epl .sw{width:64px!important;height:34px!important;flex:none}
+.epl .sw span{background:var(--ep-ch)!important;border:2px solid #777!important;border-radius:999px!important}
+.epl .sw span::after{top:3px!important;left:3px!important;width:24px!important;height:24px!important;background:#fff!important}
+.epl .sw input:checked+span::after{transform:translateX(30px)!important}
+.epl .vm1{flex-wrap:wrap!important}
+.epl .vm1 .pft{flex:1 1 100%}
+.epl .vm1 .vml{flex:1 1 100%;flex-wrap:wrap!important;overflow:visible!important}
+.epl .bkm .bkl:empty{display:none}
+</style>
 </body>
 </html>
