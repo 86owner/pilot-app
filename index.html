@@ -3955,7 +3955,10 @@ nav .lang button{min-height:36px!important;font-size:11px!important}
 /* EP4 2026-11-09: profile dashboard full height; Employees list = dashboard on TOP (full width, stationary), only the names scroll */
 .epg:not(.eplg)>.epl{height:calc(100vh - 2 * var(--ep-pad));max-height:calc(100vh - 2 * var(--ep-pad));display:flex;flex-direction:column}
 .epg:not(.eplg)>.epl>*{flex:none}
-.epg:not(.eplg)>.epl>.mrbox{margin-top:auto!important;margin-bottom:0!important}
+.epg:not(.eplg)>.epl{justify-content:space-between}
+.epg:not(.eplg)>.epl>*{margin-top:0!important;margin-bottom:0!important}
+.epg:not(.eplg)>.epl>.pfg{display:contents!important}
+.epg:not(.eplg)>.epl>.pfg>*{flex:none;margin-top:0!important;margin-bottom:0!important}
 .eplg{display:block!important}
 .eplg>.eptop{position:sticky!important;top:calc(-1 * var(--ep-pad));z-index:20;max-height:none!important;height:auto!important;overflow:visible!important;margin:0 0 12px!important;display:grid!important;grid-template-columns:1fr minmax(260px,34%);gap:6px 14px;align-items:center;box-shadow:0 8px 16px rgba(0,0,0,.35)}
 .eplg>.eptop>.ephd{grid-column:1;margin:0!important;border-bottom:0!important}
