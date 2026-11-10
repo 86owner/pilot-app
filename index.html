@@ -1709,7 +1709,7 @@ h+=mrTasksHtml();$('main').innerHTML=h;epSplit();pcdPaint();mrBind();tnBind();pf
 /* EP1: inside an employee's profile, the same pieces are placed in two columns (dashboard left, task list right). Nothing is created or removed; only moved. The dashboard keeps its own scroll position when the screen is redrawn. */
 const EPS={n:'',y:0};document.addEventListener('scroll',e=>{const x=e.target;if(x&&x.classList&&x.classList.contains('epl'))EPS.y=x.scrollTop},true);
 const TNS={n:'',y:0};document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('[data-tnclose]');if(!b||cur!=='tasks')return;e.preventDefault();TN.open=TN.open||{};TN.open[b.dataset.tnclose]=false;TN.inked=false;TNS.y=0;twRender()});
-function epSplit(){if(TK.view!=='open')return;const mn=$('main');if(!mn)return;const LIST=!TK.emp;const G=document.createElement('div'),L=document.createElement('div'),R=document.createElement('div');G.className='epg';L.className='epl';R.className='epr';Array.from(mn.children).forEach(c=>{if(c.classList.contains('eplst'))return;(LIST?c.classList.contains('twcard'):c.classList.contains('pcdw'))?R.appendChild(c):L.appendChild(c)});G.appendChild(L);G.appendChild(R);mn.appendChild(G);try{const h2=L.querySelector(':scope>h2'),th=L.querySelector(':scope>.tlh');if(h2&&th){const hd=document.createElement('div');hd.className='ephd';L.insertBefore(hd,h2);hd.appendChild(h2);hd.appendChild(th)}const sy=L.querySelector(':scope>.syn');if(sy&&!twQ().length&&!TK.net)sy.remove()}catch(e){}if(LIST){try{R.insertAdjacentHTML('afterbegin',`<h2 class="eptl2">${t('Employees')} (${R.querySelectorAll('.twcard').length})</h2>`)}catch(e){}if(EPS.n!==''){EPS.n='';EPS.y=0}if(EPS.y)L.scrollTop=EPS.y;return}try{epDecor(L,R)}catch(e){}try{const tc=L.querySelector('.pfg>.tnc:not(.tnclosed)');if(tc){const ph=document.createElement('section');ph.className='pfc tnc tnclosed';const hh=tc.querySelector('.tnh');if(hh)ph.appendChild(hh.cloneNode(true));tc.parentNode.insertBefore(ph,tc);const ov=document.createElement('div');ov.className='tnov';tc.classList.add('tnpop');ov.appendChild(tc);const h=tc.querySelector('.tnh');if(h)h.insertAdjacentHTML('beforeend',`<button type="button" class="tnclose" data-tnclose="${esc(TK.emp)}">&#10005; ${t('Close')}</button>`);G.appendChild(ov);if(TNS.n===TK.emp&&TNS.y)tc.scrollTop=TNS.y;else{TNS.n=TK.emp;TNS.y=0}tc.addEventListener('scroll',()=>{TNS.y=tc.scrollTop})}}catch(e){}if(EPS.n!==TK.emp){EPS.n=TK.emp;EPS.y=0}if(EPS.y)L.scrollTop=EPS.y}
+function epSplit(){if(TK.view!=='open')return;const mn=$('main');if(!mn)return;const LIST=!TK.emp;const G=document.createElement('div'),L=document.createElement('div'),R=document.createElement('div');G.className=LIST?'epg eplg':'epg';L.className=LIST?'epl eptop':'epl';R.className='epr';Array.from(mn.children).forEach(c=>{if(c.classList.contains('eplst'))return;(LIST?c.classList.contains('twcard'):c.classList.contains('pcdw'))?R.appendChild(c):L.appendChild(c)});G.appendChild(L);G.appendChild(R);mn.appendChild(G);try{const h2=L.querySelector(':scope>h2'),th=L.querySelector(':scope>.tlh');if(h2&&th){const hd=document.createElement('div');hd.className='ephd';L.insertBefore(hd,h2);hd.appendChild(h2);hd.appendChild(th)}const sy=L.querySelector(':scope>.syn');if(sy&&!twQ().length&&!TK.net)sy.remove()}catch(e){}if(LIST){if(EPS.n!==''){EPS.n='';EPS.y=0}if(EPS.y)L.scrollTop=EPS.y;return}try{epDecor(L,R)}catch(e){}try{const tc=L.querySelector('.pfg>.tnc:not(.tnclosed)');if(tc){const ph=document.createElement('section');ph.className='pfc tnc tnclosed';const hh=tc.querySelector('.tnh');if(hh)ph.appendChild(hh.cloneNode(true));tc.parentNode.insertBefore(ph,tc);const ov=document.createElement('div');ov.className='tnov';tc.classList.add('tnpop');ov.appendChild(tc);const h=tc.querySelector('.tnh');if(h)h.insertAdjacentHTML('beforeend',`<button type="button" class="tnclose" data-tnclose="${esc(TK.emp)}">&#10005; ${t('Close')}</button>`);G.appendChild(ov);if(TNS.n===TK.emp&&TNS.y)tc.scrollTop=TNS.y;else{TNS.n=TK.emp;TNS.y=0}tc.addEventListener('scroll',()=>{TNS.y=tc.scrollTop})}}catch(e){}if(EPS.n!==TK.emp){EPS.n=TK.emp;EPS.y=0}if(EPS.y)L.scrollTop=EPS.y}
 /* EP2: mockup look. Only re-arranges and labels what is already drawn (same buttons, same data); adds a read-only Upcoming list and the week plan (read-only here). */
 function epDecor(L,R){const today=ymd(new Date()),date=logAddDays_(TK.week,TK.day),isT=date===today,es=S.lang==='es';
 const ps=L.querySelector('.pfst');if(ps){const b=[...ps.querySelectorAll('b')].map(x=>x.textContent),lb=['Completed','Pending','Overdue','Urgent','Tasks this week'],cl=['g','y','r','r',''];if(b.length===5)ps.innerHTML=lb.map((k,i)=>`<span class="epc ${cl[i]}"><i>${t(k)}</i><b>${esc(b[i])}</b></span>`).join('')}
@@ -3950,6 +3950,25 @@ nav .lang button{min-height:36px!important;font-size:11px!important}
 .tnov .tnpop .tqb.no{background:#FDECEA!important;border-color:#C62828}
 .tnov .tnpop .pflg button{color:#333}.tnov .tnpop .pflg button[aria-pressed=true]{background:#333!important;color:#fff!important}
 .tnov .tnpop canvas{background:#fff;border:2px solid #555;border-radius:10px;max-width:100%}
+</style>
+<style id="ep4css">
+/* EP4 2026-11-09: profile dashboard full height; Employees list = dashboard on TOP (full width, stationary), only the names scroll */
+.epg:not(.eplg)>.epl{height:calc(100vh - 2 * var(--ep-pad));max-height:calc(100vh - 2 * var(--ep-pad));display:flex;flex-direction:column}
+.epg:not(.eplg)>.epl>*{flex:none}
+.epg:not(.eplg)>.epl>.mrbox{margin-top:auto!important;margin-bottom:0!important}
+.eplg{display:block!important}
+.eplg>.eptop{position:sticky!important;top:calc(-1 * var(--ep-pad));z-index:20;max-height:none!important;height:auto!important;overflow:visible!important;margin:0 0 12px!important;display:grid!important;grid-template-columns:1fr minmax(260px,34%);gap:6px 14px;align-items:center;box-shadow:0 8px 16px rgba(0,0,0,.35)}
+.eplg>.eptop>.ephd{grid-column:1;margin:0!important;border-bottom:0!important}
+.eplg>.eptop>.ephd>h2{font-size:22px!important}
+.eplg>.eptop>.ephd .tlh{font-size:13px!important}.eplg>.eptop>.ephd .tlh b{font-size:14px!important}
+.eplg>.eptop>.segt{grid-column:2;margin:0!important}
+.eplg>.eptop>.syn,.eplg>.eptop>.tlcs,.eplg>.eptop>.tno{grid-column:1/3;margin:0!important}
+.eplg>.eptop>.tlcs{grid-template-columns:repeat(6,1fr)!important;gap:0 8px!important;border-top:3px solid var(--ep-red)!important}
+main:has(>.eplst) .eplg .tlc{flex-direction:column-reverse!important;align-items:center!important;justify-content:center!important;text-align:center!important}
+main:has(>.eplst) .eplg .tlc.c0{grid-column:auto!important;border-bottom:0!important;padding-bottom:0!important;margin:0!important}
+.eplg .tlc b,.eplg .tlc.c0 b{font-size:22px!important}
+.eplg .tlc span{font-size:10.5px!important}
+.eplg>.epr{padding:0 2px}
 </style>
 </body>
 </html>
