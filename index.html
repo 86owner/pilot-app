@@ -2195,7 +2195,8 @@ else if(d.whe!==undefined){TK.hemp=e.target.value;twHistLoad(true);twRender()}
 else if(d.whw!==undefined){TK.hw=+e.target.value;twHistLoad(true)}});
 const TW_PH='aed47d61';
 const twH=s=>{let h=2166136261;for(const ch of 'birriaz-mgr-'+s){h^=ch.charCodeAt(0);h=Math.imul(h,16777619)>>>0}return h.toString(16)};
-function twPinModal(){let m=$('twm');if(!m){m=document.createElement('div');m.id='twm';m.className='tlmo';m.setAttribute('role','dialog');m.setAttribute('aria-modal','true');document.body.appendChild(m)}
+const ZOS_OPEN=1;   /* EP20: all code locks removed (owner 2026-11-09). 0 = code boxes come back (the script must match) */
+function twPinModal(){if(ZOS_OPEN){TK.mgr=true;TK.pin='open';TK.mt=Date.now();const w=$('twm');if(w)w.remove();mgRefresh();toast(t('Manager mode is on. It turns off by itself after 15 minutes.'));return}let m=$('twm');if(!m){m=document.createElement('div');m.id='twm';m.className='tlmo';m.setAttribute('role','dialog');m.setAttribute('aria-modal','true');document.body.appendChild(m)}
 m.innerHTML=`<div class="tlmb"><div class="tlmt"><div><b>${t('Manager mode')}</b><br><span>${t('Enter the manager code.')}</span></div><button class="btn alt" id="twx">${t('Cancel')}</button></div><label class="tlfl">${t('Manager code')}<input id="twpin" type="password" inputmode="numeric" maxlength="8" autocomplete="off"></label><div id="twpe" class="twfl" role="status"></div><button class="btn" id="twpo">${t('Unlock')}</button></div>`;
 const f=$('twpin'),go=()=>{if(twH(f.value.trim())===TW_PH){TK.mgr=true;TK.pin=f.value.trim();TK.mt=Date.now();m.remove();mgRefresh();toast(t('Manager mode is on. It turns off by itself after 15 minutes.'))}else{$('twpe').textContent=t('Wrong code.');f.value='';f.focus()}};
 $('twx').onclick=()=>m.remove();$('twpo').onclick=go;f.onkeydown=e=>{if(e.key==='Enter')go()};setTimeout(()=>f.focus(),50)}
@@ -2283,6 +2284,7 @@ function scState(){const e=$('scst');if(e)e.textContent=SC.busy?t('Saving...'):S
 function scPosSel(attr,val,blank){const P=(SC.data.pos||[]);const c=scCol(val);return `<select class="scps" ${attr} style="background:${c||'#ECECEC'};color:${c?scInk(c):'#333'}"><option value="">${blank||'—'}</option>${P.map(p=>`<option value="${esc(p.n)}" ${p.n===val?'selected':''}>${esc(p.n)}</option>`).join('')}</select>`}
 function scTimeSel(attr,val,dis){return `<select class="scts" ${attr} ${dis?'disabled':''}><option value="">—</option>${scTimes.map(x=>`<option ${x===val?'selected':''}>${x}</option>`).join('')}</select>`}
 function sched(){const m=$('main');
+if(!SC.un&&ZOS_OPEN&&!SC.busy&&!SC.err){scUnlock('open');return}
 if(!SC.un){m.innerHTML=`<h2>${t('Schedule')}</h2>${rqBtn()}<div class="psum sclock"><h3>&#128274; ${t('Managers only')}</h3><p class="note">${t('Enter the schedule code to see and change the schedule.')}</p><label class="tlfl">${t('Schedule code')}<input id="scpin" type="password" inputmode="numeric" maxlength="8" autocomplete="off"></label>${SC.err?`<p class="twfl" role="status">${esc(SC.err)}</p>`:''}<button class="btn" id="scgo" ${SC.busy?'disabled':''}>${SC.busy?t('Opening...'):t('Open schedule')}</button></div>`;
 const f=$('scpin');$('scgo').onclick=()=>scUnlock(f.value);f.onkeydown=e=>{if(e.key==='Enter')scUnlock(f.value)};setTimeout(()=>f.focus(),50);return}
 const D=SC.data||{pos:[],emps:[],d:{}};D.pos=D.pos||[];D.emps=D.emps||[];D.d=D.d||{};SC.data=D;
@@ -3292,7 +3294,7 @@ function ivApi(action,data){const c=new AbortController(),tm=setTimeout(()=>c.ab
 return fetch(BACKEND,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(Object.assign({action:action,key:BKEY,pin:IV.pin,location:S.ol},data||{})),signal:c.signal}).then(r=>r.json()).then(j=>{clearTimeout(tm);if(j&&j.code==='auth'){ivLock()}return j},e=>{clearTimeout(tm);throw e})}
 function ivOv(){let o=$('ivo');if(!o){o=document.createElement('div');o.id='ivo';o.className='ov ivo';o.setAttribute('role','dialog');o.setAttribute('aria-modal','true');document.body.appendChild(o)}return o}
 function ivClose(){const o=$('ivo');if(o)o.remove();if(cur==='oos'){list();sum();invSug()}}
-function ivNeed(then){if(!BACKEND){toast(t('Not connected.'),true);return}if(ivActive()){IV.at=Date.now();then();return}ivCode(then)}
+function ivNeed(then){if(!BACKEND){toast(t('Not connected.'),true);return}if(ivActive()){IV.at=Date.now();then();return}if(ZOS_OPEN){const k0=IV.pin;IV.pin='open';ivApi('invAuth').then(j=>{if(j&&j.ok){IV.role=j.role;IV.at=Date.now();then()}else{IV.pin=k0;ivCode(then)}}).catch(()=>{IV.pin=k0;toast(t('Could not connect. Check the wifi and try again.'),true)});return}ivCode(then)}
 function ivCode(then){const o=ivOv();o.innerHTML=`<div class="tlmb"><div class="tlmt"><div><b>${t('Manager')}</b><br><span>${t('Enter the manager or owner code.')}</span></div><button class="btn alt" id="ivx">${t('Cancel')}</button></div><label class="tlfl">${t('Code')}<input id="ivpin" type="password" inputmode="numeric" maxlength="8" autocomplete="off"></label><div id="ivpe" class="twfl" role="status"></div><button class="btn" id="ivpo">${t('Unlock')}</button></div>`;
 $('ivx').onclick=ivClose;const go=()=>{const p=$('ivpin').value.trim();if(!p)return;$('ivpe').textContent=t('Checking...');const keep0=IV.pin;IV.pin=p;
 ivApi('invAuth').then(j=>{if(j&&j.ok){IV.role=j.role;IV.pin=p;IV.at=Date.now();then()}else{IV.pin=keep0;$('ivpe').textContent=(j&&j.error)?t(j.error==='wrong code'?'Wrong code.':j.error):t('Wrong code.');$('ivpin').value=''}}).catch(()=>{IV.pin=keep0;if($('ivpe'))$('ivpe').textContent=t('Could not connect. Check the wifi and try again.')})};
@@ -3782,6 +3784,13 @@ function lblFit(){if(cur!=='fifo')return;const sd=document.querySelector('main .
 const k=pv.innerHTML.length+'|'+sd.clientHeight+'|'+(FQ.size||'');if(pv.dataset.fit===k)return;pv.style.zoom='';const z0=parseFloat(getComputedStyle(pv).zoom)||1,over=sd.scrollHeight-sd.clientHeight;
 if(over>1){const h=pv.getBoundingClientRect().height;if(h>40)pv.style.zoom=String(Math.max(0.6,z0*(h-over-4)/h))}pv.dataset.fit=k}
 setInterval(lblFit,300);window.addEventListener('resize',lblFit);
+/* PHASE 0: tablet check-in every 5 minutes (invisible): tablet id, records waiting to be sent, failed sends. Nothing on screen changes. */
+const ZB={fail:0};
+function zbId(){let d='';try{d=localStorage.getItem('zx_dev')||''}catch(e){}if(!d){d='T'+Date.now().toString(36).slice(-4).toUpperCase()+Math.random().toString(36).slice(2,5).toUpperCase();try{localStorage.setItem('zx_dev',d)}catch(e){}}return d}
+(function(){try{const p0=post;post=function(op){return p0(op).catch(e=>{ZB.fail++;throw e})}}catch(e){}})();
+function zbPend(){const n=f=>{try{return (typeof f==='function'&&f()||[]).length}catch(e){return 0}};return{tl:n(typeof tlQ!=='undefined'&&tlQ),tw:n(typeof twQ!=='undefined'&&twQ),iv:n(typeof ivQ!=='undefined'&&ivQ),pl:n(typeof plQ!=='undefined'&&plQ),q:n(typeof qget!=='undefined'&&qget),ps:(typeof PS!=='undefined'&&PS&&Array.isArray(PS.q))?PS.q.length:0}}
+function zbSend(){if(!BACKEND)return;const f=ZB.fail;post({action:'zosBeat',dev:zbId(),loc:(typeof S!=='undefined'&&S.ol)||'',ua:navigator.userAgent.slice(0,90),pend:zbPend(),fail:f}).then(j=>{if(j&&j.ok)ZB.fail=Math.max(0,ZB.fail-f)}).catch(()=>{})}
+setTimeout(zbSend,15000);setInterval(zbSend,300000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)zbSend()});
 (function(){try{if('serviceWorker' in navigator&&window.isSecureContext&&/^https?:$/.test(location.protocol))navigator.serviceWorker.register('sw.js').catch(()=>{})}catch(e){}
 const b=document.createElement('div');b.id='offb';b.setAttribute('role','status');document.body.appendChild(b);
 function paint(){const off=navigator.onLine===false;b.style.display=off?'block':'none';if(off)b.textContent=t('No internet. Working from this tablet. Changes are saved and sync when the internet is back.')}
