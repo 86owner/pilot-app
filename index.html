@@ -1995,8 +1995,9 @@ const TW_ROLE={ALICIA:'Cashier',JENNIFER:'Cashier',BRISA:'Cashier',HUGO:'Cook',E
 const twRl=n=>{let r='',en='';try{const e=(twCfgRO().employees||[]).find(x=>x.name===n);r=(e&&e.role)||'';en=(e&&e.rend)||''}catch(x){}r=r||TW_ROLE[n]||'';if(!r)return'';let tx=t(r);if(S.lang==='es'&&ES[r]){const m=/^(.*?)(o\/a|a\/o|o|a)$/i.exec(ES[r]);if(m&&/^[oa]$/i.test(en))tx=m[1]+en.toLowerCase();else if(m&&!en&&m[1])tx=m[1]+'o/a'}return` <small class="twrl">${esc(tx)}</small>`};
 const twPc=p=>p===null?'na':p>=90?'g':p>=70?'y':'r';
 const twPt=p=>p===null?'—':p+'%';
-function tasks(){if(!TK.week||TK.week>twCur())TK.week=twCur();TK.emp='';TK.view='open';twRender();twLoad();twFlush();mrLoad(true);vmLoad(true);tnLoad(true)}
-function twRender(){if(cur!=='tasks')return;if(uiSelOpen()){uiDefer('tw',twRender);return}if(TK.view!=='open'&&TK.view!=='rep'&&TK.view!=='trn')TK.view='open';const m0=TK.mgr,L0=S.lang,pl=TK.view==='open'&&TK.emp?pfLangOf(TK.emp):'';TK.mgrR=m0;TK.mgr=false;if(pl)S.lang=pl;try{twRender0()}finally{TK.mgr=m0;S.lang=L0}}
+function twFresh(){const d=ymd(new Date());if(TK.wd!==d){TK.wd=d;TK.week=twCur();TK.day=-1}}   /* 2026-11-16: a new day -> this week / today */
+function tasks(){twFresh();if(!TK.week||TK.week>twCur())TK.week=twCur();TK.emp='';TK.view='open';twRender();twLoad();twFlush();mrLoad(true);vmLoad(true);tnLoad(true)}
+function twRender(){if(cur!=='tasks')return;twFresh();if(uiSelOpen()){uiDefer('tw',twRender);return}if(TK.view!=='open'&&TK.view!=='rep'&&TK.view!=='trn')TK.view='open';const m0=TK.mgr,L0=S.lang,pl=TK.view==='open'&&TK.emp?pfLangOf(TK.emp):'';TK.mgrR=m0;TK.mgr=false;if(pl)S.lang=pl;try{twRender0()}finally{TK.mgr=m0;S.lang=L0}}
 function pcdPaint(){const mn=$('main');if(!mn)return;let k=0;mn.querySelectorAll('.pcdw,.pfg>.pfc,.pfg>.tnc,.pcdx').forEach(e=>{e.classList.remove('alt');if(e.dataset&&(e.dataset.k==='urgent'||e.dataset.k==='done')||e.classList.contains('pcdx'))return;if(k++%2)e.classList.add('alt')})}
 function twRender0(){const cfg=twCfg(),now=nowObj(),wk=TK.week,st=twStatsFor(cfg,wk),isCur=wk===twCur(),sun=logAddDays_(wk,6),S0=st.store,es=S.lang==='es';
 const rv=cfg.tasks.filter(x=>x.fl&&!x.off).length+(((TW.inv&&TW.inv.pending)||[]).filter(p=>p.status==='pending').length);
@@ -2031,7 +2032,11 @@ if(L2.length){UP=document.createElement('div');UP.className='pcdw';UP.dataset.k=
 try{const pw=document.createElement('div');pw.className='pcdw epplan';pw.dataset.k='plan';pw.innerHTML=pweek(pst());R.appendChild(pw)}catch(e){}
 R.insertAdjacentHTML('afterbegin',`<div class="eptb"><h2 class="eptl">${t('Task list')} (${R.querySelectorAll('.pcdw:not(.epplan) .twr,.pcdw:not(.epplan) .row.mrrow').length}) <span class="eptd">&middot; ${esc(new Date(date+'T12:00:00').toLocaleDateString(es?'es-US':'en-US',{weekday:'long',month:'short',day:'numeric'}))}</span></h2></div>`)}
 /* AD: this person's items from Today's task list live inside the profile's task list: open ones on top (above the carried-over ones), finished ones under Completed */
-function twPrepRows(n){try{const st=pst(),all=PITEMS.concat(st.c),seen={},mine=all.filter(i=>st.n[i.id]&&(((st.e||{})[i.id])||(twOwner(i.n)?'':pWhoOf(i.n)||''))===n&&!seen[i.id]&&(seen[i.id]=1)),pp=st.p||{};
+function twPrepOwn_(nm){try{const cfg=twCfgRO(),td=ymd(new Date()),L=cfg.tasks.filter(t=>!t.off&&(t.l||[]).includes(nm));if(!L.length)return null;let lk=[];try{lk=twInst_(cfg,twCur()).filter(i=>i.due===td).map(i=>i.tid)}catch(x){}
+  const o={who:{},today:{}};L.forEach(t=>{let w='';try{w=twEmpAt_(cfg,t,td)}catch(x){w=t.emp}if(!w)return;o.who[w]=1;if(lk.includes(t.id))o.today[w]=1});return o}catch(x){return null}}
+/* 2026-11-16: who sees a Today's-task item on their page: the dropdown name; else the TASK LIST row's person today (unless that row is already on their list today); else the position's turn */
+function twPrepIs_(i,st,n){const e=(st.e||{})[i.id];if(e)return e===n;const o=twPrepOwn_(i.n);if(o)return !!o.who[n]&&!o.today[n];return (pWhoOf(i.n)||'')===n}
+function twPrepRows(n){try{const st=pst(),all=PITEMS.concat(st.c),seen={},mine=all.filter(i=>st.n[i.id]&&twPrepIs_(i,st,n)&&!seen[i.n]&&(seen[i.n]=1)),pp=st.p||{};
 mine.sort((a,b)=>((pp[a.id]?0:st.u[a.id]?1:2)-(pp[b.id]?0:st.u[b.id]?1:2))||((+pp[b.id]||0)-(+pp[a.id]||0)));
 const row=i=>{const dn=!!st.x[i.id],u=!!(st.u[i.id]&&!dn);return `<div class="twr pprow${dn?' dn':''}${u?' urg':''}"><button class="twck${dn?' on':''}" data-ppb="${esc(i.id)}" aria-pressed="${dn}" aria-label="${t('Done')}: ${esc(i.n)}">${dn?'&#10003;':''}</button><div class="twb"><div class="twt">${esc(pTr(i.n))}</div><div class="twch"><span class="twc pr">&#128203; ${t("Today's task")}</span>${u?`<span class="twc as">${t('URGENT')}</span>`:''}${pp[i.id]?`<span class="twc">&#11014; ${t('TOP')}</span>`:''}</div></div></div>`};
 return {open:mine.filter(i=>!st.x[i.id]).map(row).join(''),done:mine.filter(i=>st.x[i.id]).map(row).join(''),nOpen:mine.filter(i=>!st.x[i.id]).length,nDone:mine.filter(i=>st.x[i.id]).length}}catch(x){return {open:'',done:'',nOpen:0,nDone:0}}}
@@ -3682,7 +3687,7 @@ try{if(window.speechSynthesis)speechSynthesis.getVoices()}catch(e){}zelRender()}
 const IDLE_MS=600000;let IDLE_AT=Date.now();
 ['pointerdown','keydown','touchstart','wheel','input'].forEach(ev=>{try{document.addEventListener(ev,()=>{IDLE_AT=Date.now()},{capture:true,passive:true})}catch(e){}});
 function idleBusy(){try{return !!(VM.rec||VM.busy||TN.inked||TN.busy||MR.busy||ZEL.state==='listening'||ZEL.state==='processing')}catch(e){return false}}
-function idleHome(){try{mrClose()}catch(e){}try{if(ZEL.open){zStop();ZEL.open=false;zelRender()}}catch(e){}try{TK.emp='';TN.open={}}catch(e){}cur='home';rc=-1;go();IDLE_AT=Date.now()}
+function idleHome(){try{mrClose()}catch(e){}try{if(ZEL.open){zStop();ZEL.open=false;zelRender()}}catch(e){}try{TK.emp='';TN.open={};TK.wd=''}catch(e){}cur='home';rc=-1;go();IDLE_AT=Date.now()}
 /* ===== Y: automatic update. Every 5 minutes the tablet asks GitHub for the page; when it changed, it reloads by itself, but only while idle on Home
    (never while recording, signing, typing, using Zelyna or with something still sending). Nothing waiting to send is lost: it is saved on the tablet. ===== */
 const AU={h:'',nw:'',at:0};
