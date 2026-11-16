@@ -1271,7 +1271,7 @@ if(!TV.list.length)return;const mn=$('main');if(!mn||(cur!=='tasks'&&cur!=='prep
 try{new MutationObserver(()=>{clearTimeout(tvMark.t);tvMark.t=setTimeout(tvMark,50)}).observe($('main'),{childList:true,subtree:true})}catch(e){}
 /* AF: training videos removed: tvLoad not started */
 let GO_PREV='';function go(){const gp=GO_PREV;GO_PREV=cur;if(gp!=='close'||cur!=='close')PH.length=0;nav();document.body.dataset.pg=cur;const m=$('main');m.scrollTop=0;m.style.paddingBottom='';
-if(cur==='home')home();else if(cur==='oos')oos();else if(cur==='maint')maint();else if(cur==='prep')prep();else if(cur==='close'){if(gp!=='close')CO_LAST='';closeout()}else if(cur==='alarms')alarms();else if(cur==='templog')templog();else if(cur==='sched')sched();else if(cur==='training')training();else if(cur==='tasks')tasks();else if(cur==='videos')videos();else if(cur==='mgr')mgrPage();else if(cur==='fifo'){FQ._sc=null;fifo();if(BACKEND)twLoad()}else cards()}
+if(cur==='home')home();else if(cur==='oos')oos();else if(cur==='maint')maint();else if(cur==='prep')prep();else if(cur==='close'){if(gp!=='close')CO_LAST='';closeout()}else if(cur==='alarms')alarms();else if(cur==='templog')templog();else if(cur==='sched')sched();else if(cur==='training')training();else if(cur==='tasks')tasks();else if(cur==='videos')videos();else if(cur==='mgr')mgrPage();else if(cur==='fifo'){FQ._sc=null;if(gp!=='fifo'&&!FQ.wait)fReset_();fifo();if(BACKEND)twLoad()}else cards()}
 
 function cards(){if(cur==='recipes')return recipes();const k=cur,tt=t(SECS.find(s=>s[0]===k)[1]);let h=`<h2>${tt}</h2>`;if(k==='weekly')h+=`<div class="seg" role="group" aria-label="Day">${['Monday','Tuesday','Wednesday','Thursday','Friday'].map(d=>`<button data-wd="${d}" aria-pressed="${wd===d}">${t(d)}</button>`).join('')}</div>`;
 const L=k==='weekly'?DATA.weekly.filter(x=>x.days.includes(wd)):DATA[k];if(!L.length)h+=`<div class="empty"><b>${t(EMPTY[k])}</b></div>`;
@@ -2729,7 +2729,9 @@ const FDAY=['SUNDAY','MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY','SATURDA
 const fMdY=d=>p2(d.getMonth()+1)+'/'+p2(d.getDate())+'/'+d.getFullYear();
 let FQ=(()=>{let s={};try{s=JSON.parse(localStorage.getItem('birriaz_fifo')||'{}')||{}}catch(e){}const o=Object.assign({prod:'',custom:'',emp:'',copies:1,size:'M',q:'',log:[],ops:[],wait:null},s);o.size='S';o.wait=null;o.lay='B';return o})();
 /* AH6: the last person who printed a label (or a black sticker) on this tablet comes up when that label is picked again; it can still be changed */
-function fLastBy(n){if(!n||n==='__custom')return'';let e=(FQ.by||{})[n];if(!e&&n.indexOf('BK:')!==0){const r=(FQ.log||[]).find(x=>x.product===n&&x.emp);e=r?r.emp:''}return e&&pNames().indexOf(e)>=0?e:''}
+/* 2026-11-16: labels start clean: nothing remembered between people */
+function fReset_(){FQ.prod='';FQ.custom='';FQ.emp='';FQ.copies=1;FQ.ufc=1;FQ.bkCu=0;FQ.bkTxt='';FQ.mfr='';FQ.q='';FQ.bq='';try{fSave()}catch(e){}}
+function fLastBy(n){return'';if(!n||n==='__custom')return'';let e=(FQ.by||{})[n];if(!e&&n.indexOf('BK:')!==0){const r=(FQ.log||[]).find(x=>x.product===n&&x.emp);e=r?r.emp:''}return e&&pNames().indexOf(e)>=0?e:''}
 function fSave(){try{localStorage.setItem('birriaz_fifo',JSON.stringify(FQ))}catch(e){}}
 // FIFO products = PREP LIST tab: every row with "FIFO label" ticked. The label name is PRODUCT – STAGE (for example ASADA – MARINAR).
 const BK_SEED=['USE FIRST','ASADA','CHICKEN','AL PASTOR','CHEESE','CHURROS','WHITE RICE'];
@@ -2804,7 +2806,7 @@ h+=`<div class="fside"><b>${t('Label preview')}</b><div class="fprev ${FQ.size==
 h+=`<div class="fgrp fgrpe"><label class="tlfl" for="fe">${t('Prepared by')}</label><select id="fe" class="fsel"><option value="">${t('Choose an employee')}</option>${names.map(n=>`<option ${FQ.emp===n?'selected':''}>${esc(n)}</option>`).join('')}</select></div>`;
 h+=`<div class="fcp"><b>${t('Number of copies')}</b><button class="btn alt" id="fm" aria-label="${t('Fewer')}">&minus;</button><span id="fcn">${FQ.copies}</span><button class="btn alt" id="fpl" aria-label="${t('More')}">+</button></div>`;
 const ready=c.name&&c.emp,busy=!!FQ.wait;
-h+=`<button class="btn fbig" id="fgo" ${ready&&m.ok?'':'disabled'}>&#128424; ${t('PRINT LABEL')}${FQ.copies>1?' × '+FQ.copies:''}</button>${last&&last.product===c.name&&FQ.again?`<button class="btn alt" id="fan">${t('PRINT AGAIN')}</button>`:''}${!ready?`<p class="note">${t('Choose a product and who prepared it.')}</p>`:''}`;
+h+=`<button class="btn fbig" id="fgo" ${ready&&m.ok?'':'disabled'}>&#128424; ${t('PRINT LABEL')}${FQ.copies>1?' × '+FQ.copies:''}</button>${last&&last.kind!=='black'&&last.product&&last.emp&&FQ.again?`<button class="btn alt" id="fan">${t('PRINT AGAIN')}: ${esc(last.product)} · ${esc(last.emp)}</button>`:''}${!ready?`<p class="note">${t('Choose a product and who prepared it.')}</p>`:''}`;
 if(!m.ok||FQ.ops.length)h+=`<div class="fst${m.ok?'':' bad'}">${m.ok?'':`<b>${t('Printer status')}</b><span>${esc(m.txt)}</span>`}${FQ.ops.length?`<span>${FQ.ops.length} ${t('records waiting to sync.')}</span>`:''}</div>`;
 h+=`<details class="fhelp" id="fhd" ${FQ.so?'open':''}><summary>${t('Printer setup (one time)')}</summary><ol><li>${t('Connect the Brother QL-820NWB and the tablet to the same Wi-Fi.')}</li><li>${t('On the tablet install “Brother Print Service Plugin” from the Google Play Store.')}</li><li>${t('Android Settings → Connected devices → Connection preferences → Printing → turn on Brother Print Service Plugin.')}</li><li>${t('In Fully Kiosk: Advanced Web Settings → Enable JavaScript Interface (PLUS license).')}</li><li>${t('Load the DK-1209 die-cut labels (62 × 29 mm). Print a first label. In the print screen choose the QL-820NWB, paper 2.4" × 1.1" and Landscape. Android remembers it.')}</li><li>${t('The labels are already pre-cut, so they do not need the cutter: in the print screen open More options, turn OFF Cut every label (Auto cut) and turn ON Cut at end. All the labels of one print then come out together in one strip.')}</li><li>${t('Labels and black stickers are changed in the app: turn on Manager mode, then tap Edit the FIFO list.')}</li><li>${t('In Fully Kiosk turn on Keep Screen On, so alarms ring on time.')}</li></ol></details></div></div>`;
 const BL=fBlkAll();if(BL.indexOf(FQ.bk)<0)FQ.bk=BL[0];
@@ -2817,7 +2819,7 @@ document.querySelectorAll('[data-lay]').forEach(b=>b.onclick=()=>{FQ.lay=b.datas
 const fc=$('fc');if(fc){fc.oninput=e=>{FQ.custom=e.target.value;fSave();const pv=document.querySelector('.fprev');if(pv)pv.innerHTML=fLabelHtml(fCalc(),FQ.size);const g=$('fgo');if(g)g.disabled=!(fCalc().name&&FQ.emp&&fMethod().ok)}}
 $('fe').onchange=e=>{FQ.emp=e.target.value;fSave();keep(fifo)};
 $('fm').onclick=()=>{FQ.copies=Math.max(1,FQ.copies-1);fSave();keep(fifo)};$('fpl').onclick=()=>{FQ.copies=Math.min(20,FQ.copies+1);fSave();keep(fifo)};
-if($('fgo'))$('fgo').onclick=()=>fPrint();if($('fan'))$('fan').onclick=()=>{FQ.copies=1;fSave();fPrint()};FQ.again=FQ.again&&cur==='fifo'?FQ.again:0;
+if($('fgo'))$('fgo').onclick=()=>fPrint();if($('fan'))$('fan').onclick=()=>{const L=FQ.log[0];if(!L)return;if(L.custom){FQ.prod='__custom';FQ.custom=L.product}else FQ.prod=L.product;FQ.emp=L.emp;FQ.copies=1;fSave();fPrint()};FQ.again=FQ.again&&cur==='fifo'?FQ.again:0;
 if($('fyes'))$('fyes').onclick=()=>fDone(true);if($('fno'))$('fno').onclick=()=>fDone(false);
 if($('ufm'))$('ufm').onclick=()=>{FQ.ufc=Math.max(1,(FQ.ufc||1)-1);fSave();keep(fifo)};if($('ufp'))$('ufp').onclick=()=>{FQ.ufc=Math.min(20,(FQ.ufc||1)+1);fSave();keep(fifo)};if($('ufgo'))$('ufgo').onclick=()=>ufPrint();{const hd=$('fhd');if(hd)hd.ontoggle=()=>{FQ.so=hd.open?1:0;fSave()}}document.querySelectorAll('[data-bk]').forEach(b=>b.onclick=()=>{FQ.bk=b.dataset.bk;FQ.bkCu=0;const lb=fLastBy('BK:'+FQ.bk);if(lb)FQ.emp=lb;fSave();keep(fifo)});document.querySelectorAll('[data-bkm]').forEach(b=>b.onclick=e=>{e.stopPropagation();fBkMove(b.dataset.bkm,+b.dataset.dir)})}
 // Black sticker: tries 1, 2 or 3 lines and keeps the layout with the biggest letters that still fit the label.
@@ -2882,7 +2884,7 @@ const ph=FQ.size==='S'?29:62;ps.textContent=fPageCss(ph);document.body.classList
 const end=()=>{document.body.classList.remove('fprinting')},FK=!!(window.fully&&typeof window.fully.print==='function');
 if(!FK)window.addEventListener('afterprint',end,{once:true});
 try{if(FK){document.body.classList.add('fpshot');window.fully.print()}else window.print()}catch(e){end();toast(t('The print screen could not open:')+' '+e,true);keep(fifo);return}
-if(FK)fPrintEnd();else setTimeout(end,60000);toast(t('Sent to the printer.'));keep(fifo)}
+if(FK)fPrintEnd();else setTimeout(end,60000);fReset_();toast(t('Sent to the printer.'));keep(fifo)}
 function fPrint(){const c=fCalc(),m=fMethod();if(!c.name||!c.emp){toast(t('Choose a product and who prepared it.'),true);return}if(!m.ok){toast(m.txt,true);return}
 const rec={id:'f'+Date.now().toString(36)+Math.random().toString(36).slice(2,7),kind:'regular',slSrc:c.src,product:c.name,custom:c.custom,prep:ymd(c.prep),use:ymd(c.use),sl:c.sl,emp:c.emp,copies:FQ.copies,status:'Sent to printer',at:lts(),dev:(navigator.userAgent.match(/SM-[A-Z0-9]+|iPad|CrOS/)||[''])[0]};
 FQ.again=1;{const C=fCnt();C[rec.product]=(C[rec.product]||0)+(+rec.copies||1)}FQ.by=FQ.by||{};if(rec.product&&rec.emp)FQ.by[rec.product]=rec.emp;FQ.log.unshift(rec);FQ.log=FQ.log.slice(0,200);FQ.ops.push({action:'fifoLog',rec:Object.assign({},rec)});fSave();
@@ -2894,7 +2896,7 @@ const end=()=>{document.body.classList.remove('fprinting')},FK=!!(window.fully&&
 // Fully Kiosk: the Android print screen redraws the page every time a setting is changed, so the label view stays on until the next tap on the app.
 if(!FK)window.addEventListener('afterprint',end,{once:true});
 try{if(FK){document.body.classList.add('fpshot');window.fully.print()}else window.print()}catch(e){rec.status='Print error';fQueueStatus(rec);end();fSave();toast(t('The print screen could not open:')+' '+e,true);keep(fifo);fFlush();return}
-if(FK)fPrintEnd();else setTimeout(end,60000);toast(t('Sent to the printer. If it did not come out, tap PRINT AGAIN.'));keep(fifo);fFlush()}
+if(FK)fPrintEnd();else setTimeout(end,60000);fReset_();toast(t('Sent to the printer. If it did not come out, tap PRINT AGAIN.'));keep(fifo);fFlush()}
 function fQueueStatus(rec){FQ.ops.push({action:'fifoStatus',id:rec.id,status:rec.status});fSave()}
 function fDone(ok){const r=FQ.wait;if(!r)return;document.body.classList.remove('fprinting','fpshot');if(r.uf){FQ.wait=null;fSave();toast(ok?t('Saved. Label printed.'):t('Saved as not printed. Your choices are kept, so you can try again.'),!ok);keep(fifo);return}r.status=ok?'Printed':'Not printed';const L=FQ.log.find(x=>x.id===r.id);if(L)L.status=r.status;FQ.wait=null;fQueueStatus(r);fSave();
 toast(ok?t('Saved. Label printed.'):t('Saved as not printed. Your choices are kept, so you can try again.'),!ok);keep(fifo);fFlush()}
