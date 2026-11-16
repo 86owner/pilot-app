@@ -1976,8 +1976,10 @@ function twStatsFor(cfg,wk){const n=nowObj();return twStats_(cfg,twComps(wk),twC
 const twTxt=(t,es)=>esc(es?(t.es||t.en):t.en);
 function twQpush(o){if(o.type==='invset'||(o.type==='op'&&o.o.k!=='once'))o.pin=TK.pin||'';const q=twQ();q.push(o);twQset(q)}
 /* R1 (owner rule 2026-11-09): an urgent (overdue) task and the same task due again today show once (the urgent copy). Checking it off also checks off the other open copy; unchecking undoes the copies done today together. */
-function twDedupe(L,isT){if(!isT)return L;const best={};L.forEach(x=>{if(x.st!=='overdue'&&x.st!=='pending')return;const k=x.emp+'|'+x.tid,b=best[k];if(!b||x.due<b.due||(x.due===b.due&&x.orig<b.orig))best[k]=x});return L.filter(x=>(x.st!=='overdue'&&x.st!=='pending')||best[x.emp+'|'+x.tid]===x)}
-function twTogether(cfg,tk,tid,orig,on){try{const today=ymd(new Date()),st=twStatsFor(cfg,twCur()),me=st.items.find(x=>x.tid===tid&&x.orig===orig);if(!me)return;st.items.filter(x=>x.tid===tid&&x.orig!==orig&&x.emp===me.emp&&x.due<=today&&(on?(x.st==='overdue'||x.st==='pending'):(x.st==='done'&&x.cd===today))).forEach(x=>twQpush({type:'done',id:wid('c'),tid:tid,orig:x.orig,op:on?'done':'undo',by:twEmpAt_(cfg,tk,x.orig),cts:lts()}))}catch(e){}}
+/* 2026-11-16: same task text = same task for one person (two TASK LIST rows with the same words) */
+function twDupKey_(tid){try{const t=twFind_(twCfgRO(),tid);return t?String(t.en||t.o||tid).toUpperCase().replace(/[^A-Z0-9]+/g,' ').trim():tid}catch(e){return tid}}
+function twDedupe(L,isT){if(!isT)return L;const best={};L.forEach(x=>{if(x.st!=='overdue'&&x.st!=='pending')return;const k=x.emp+'|'+twDupKey_(x.tid),b=best[k];if(!b||x.due<b.due||(x.due===b.due&&x.orig<b.orig))best[k]=x});return L.filter(x=>(x.st!=='overdue'&&x.st!=='pending')||best[x.emp+'|'+twDupKey_(x.tid)]===x)}
+function twTogether(cfg,tk,tid,orig,on){try{const today=ymd(new Date()),st=twStatsFor(cfg,twCur()),me=st.items.find(x=>x.tid===tid&&x.orig===orig);if(!me)return;st.items.filter(x=>(x.tid===tid?x.orig!==orig:twDupKey_(x.tid)===twDupKey_(tid))&&x.emp===me.emp&&x.due<=today&&(on?(x.st==='overdue'||x.st==='pending'):(x.st==='done'&&x.cd===today))).forEach(x=>{const tx=twFind_(cfg,x.tid)||tk;twQpush({type:'done',id:wid('c'),tid:x.tid,orig:x.orig,op:on?'done':'undo',by:twEmpAt_(cfg,tx,x.orig),cts:lts()})})}catch(e){}}
 function twToggle(tid,orig){const cfg=twCfg(),tk=twFind_(cfg,tid);if(!tk)return;const dm=twDoneMap_(twComps(logMonday_(orig))),on=!dm[tid+'|'+orig];
 twQpush({type:'done',id:wid('c'),tid:tid,orig:orig,op:on?'done':'undo',by:twEmpAt_(cfg,tk,orig),cts:lts()});twTogether(cfg,tk,tid,orig,on);if(on)cheer(TK.emp||twEmpAt_(cfg,tk,orig)||'');if((tk.l||[]).length)twPrepFromTask(tk,on);twFlush();twRender()}
 function twFlush(){if(twBusy||!BACKEND)return;const q=twQ();if(!q.length)return;twBusy=1;const o=q[0];
@@ -2088,7 +2090,7 @@ const rank=x=>x.st==='overdue'?0:x.st==='pending'?1:x.st==='future'?2:x.st==='ex
 let list=[];if(date===today)list=mine.filter(x=>x.st==='overdue'||(!x.carry&&x.due===date)||(x.st==='done'&&x.due<today&&x.cd===today));else list=mine.filter(x=>!x.carry&&x.due===date);
 list.sort(srt);
 /* Order in a profile: urgent carried-over -> assigned tasks (this person + Anyone) -> today's tasks -> Completed (always at the bottom, still visible) */
-const isT=date===today,dnL=list.filter(x=>x.st==='done'),opL=twDedupe(list.filter(x=>x.st!=='done'),isT),td=ymd(new Date()),mrM=isT?mrFor(n):[],mrO=mrM.filter(i=>!i.done),mrD=mrM.filter(i=>i.done);
+const isT=date===today,dnL=(s=>list.filter(x=>{if(x.st!=='done')return false;const k=twDupKey_(x.tid);if(s[k])return false;return s[k]=1}))({}),opL=twDedupe(list.filter(x=>x.st!=='done'),isT),td=ymd(new Date()),mrM=isT?mrFor(n):[],mrO=mrM.filter(i=>!i.done),mrD=mrM.filter(i=>i.done);
 const co=isT?opL.filter(x=>x.due<today):[],asg=opL.filter(x=>!co.includes(x)&&tk[x.tid]&&tk[x.tid].src==='assigned'),rest=opL.filter(x=>!co.includes(x)&&!asg.includes(x));
 const W=(k,x)=>x?`<div class="pcdw" data-k="${k}">${x}</div>`:'';let hh=h;h='';const PR=isT?twPrepRows(n):{open:'',done:'',nOpen:0,nDone:0};
 if(PR.nOpen)h+=`<h3 class="gh twprh">&#128203; ${t("From today's task list")} (${PR.nOpen})</h3>`+PR.open;
